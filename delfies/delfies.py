@@ -113,9 +113,13 @@ def run_breakpoint_detection(
     clustered_foci = cluster_breakpoint_foci(
         all_foci, tolerance=detection_params.clustering_threshold
     )
-    putative_breakpoints = map(
-        lambda cluster: cluster.find_peak_softclip_focus(), clustered_foci
-    )
+    putative_breakpoints = []
+    for cluster in clustered_foci:
+        putative_breakpoints.extend(
+            cluster.find_peak_softclip_foci(
+                min_support=detection_params.min_supporting_reads
+            )
+        )
     putative_breakpoints = sorted(
         putative_breakpoints, key=lambda e: e.max_value, reverse=True
     )

@@ -159,6 +159,34 @@ class TestFociWindow:
             focus=breakpoint_focus,
         )
 
+    def test_find_peak_softclip_foci_both_orientations(
+        self, breakpoint_focus, focus_window
+    ):
+        # focus_window has reverse support (200) and forward (2)
+        # breakpoint_focus has forward support (15) and reverse (20)
+        breakpoint_focus[f"{READ_SUPPORTS[0]}"] = 350
+        focus_window.add(breakpoint_focus)
+        peaks = focus_window.find_peak_softclip_foci(min_support=10)
+        assert len(peaks) == 2
+        orientations = {p.orientation for p in peaks}
+        assert orientations == {Orientation.forward, Orientation.reverse}
+        forward_p = [p for p in peaks if p.orientation == Orientation.forward][0]
+        reverse_p = [p for p in peaks if p.orientation == Orientation.reverse][0]
+        assert forward_p.max_value == 350
+        assert forward_p.focus == breakpoint_focus
+        assert reverse_p.max_value == 200
+        assert reverse_p.focus == focus_window.foci[0]
+
+    def test_find_peak_softclip_foci_single_orientation_below_min_support(
+        self, breakpoint_focus, focus_window
+    ):
+        # Reverse has 200, forward has max 15. If min_support is 50, only reverse returned.
+        focus_window.add(breakpoint_focus)
+        peaks = focus_window.find_peak_softclip_foci(min_support=50)
+        assert len(peaks) == 1
+        assert peaks[0].orientation == Orientation.reverse
+        assert peaks[0].max_value == 200
+
 
 class TestBreakpointClustering:
     def test_breakpoint_foci_with_no_read_support_are_filtered_out(

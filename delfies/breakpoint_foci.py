@@ -265,6 +265,37 @@ class FociWindow:
             max_maximum.max_value_other_orientation = forward_maximum.max_value
         return max_maximum
 
+    def find_peak_softclip_foci(
+        self, min_support: int = 1
+    ) -> List[PutativeBreakpoint]:
+        """
+        Find peak softclip foci per strand.
+        Preserves both orientations when reciprocal breakpoints exist within the same window
+        (e.g. micro-GRS deletions of 0-3 bp or close cuts on opposite strands).
+        """
+        forward_maximum = PutativeBreakpoint(
+            Orientation.forward, 0, 0, 0, (self.Min, self.Max), None
+        )
+        reverse_maximum = PutativeBreakpoint(
+            Orientation.reverse, 0, 0, 0, (self.Min, self.Max), None
+        )
+        for focus in self.foci:
+            forward_maximum.update(focus)
+            reverse_maximum.update(focus)
+        forward_maximum.max_value_other_orientation = reverse_maximum.max_value
+        reverse_maximum.max_value_other_orientation = forward_maximum.max_value
+
+        peaks = []
+        if forward_maximum.max_value >= min_support and forward_maximum.focus is not None:
+            peaks.append(forward_maximum)
+        if reverse_maximum.max_value >= min_support and reverse_maximum.focus is not None:
+            peaks.append(reverse_maximum)
+
+        # Fallback to single peak if neither meets min_support
+        if not peaks:
+            peaks.append(self.find_peak_softclip_focus())
+        return peaks
+
     def __repr__(self):
         return f"[{self.Min},{self.Max}]"
 
